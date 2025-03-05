@@ -51,29 +51,13 @@ CREATE TRIGGER update_uszips_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
--- Enable Row Level Security
-ALTER TABLE uszips ENABLE ROW LEVEL SECURITY;
-
--- Create policies
-CREATE POLICY "Enable read access for all users" ON uszips
-    FOR SELECT USING (true);
-
--- Only allow service_role to insert/update/delete
-CREATE POLICY "Enable insert for service role only" ON uszips
-    FOR INSERT WITH CHECK (auth.role() = 'service_role');
-
-CREATE POLICY "Enable update for service role only" ON uszips
-    FOR UPDATE USING (auth.role() = 'service_role');
-
-CREATE POLICY "Enable delete for service role only" ON uszips
-    FOR DELETE USING (auth.role() = 'service_role');
-
 -- Add helpful comments
 COMMENT ON TABLE uszips IS 'US ZIP code data from SimpleMaps including cities, counties, and geographic information';
 COMMENT ON COLUMN uszips.county_weights IS 'JSON object containing county FIPS codes as keys and weights as values';
 COMMENT ON COLUMN uszips.county_names_all IS 'Pipe-delimited string of county names (e.g., "County1|County2")';
 COMMENT ON COLUMN uszips.county_fips_all IS 'Pipe-delimited string of county FIPS codes (e.g., "12345|67890")'; 
 
+-- ASC Tables
 DROP TABLE IF EXISTS "public"."asc_data";
 -- This script only contains the table creation statements and does not fully represent the table in the database. Do not use it as a backup.
 
@@ -101,6 +85,8 @@ CREATE TABLE "public"."asc_data" (
     "Disciplinary Action Effective Date" text,
     "Disciplinary Action Ending Date" text
 );
+
+-- Helper data cleaning functions
 
 -- Create a composite type for phone number with extension
 CREATE TYPE normalized_phone AS (
