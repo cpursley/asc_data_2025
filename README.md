@@ -1,4 +1,4 @@
-# Appraisal Subcommittee (ASC) Appraiser Data Analysis 2025
+# ASC Appraiser Data Analysis 2025
 
 This repository contains the data processing code and SQL queries used to analyze the Appraisal Subcommittee's (ASC) Federal Registry data for 2025. 
 
@@ -55,6 +55,27 @@ The ASC data presents several challenges that this repository helps address:
    psql -d asc_data_2025 -f migrations/asc_data_2025.sql
    ```
 
+4. **Import Source Data**
+
+   After running the migration, you'll need to import the source data:
+
+   1. **ASC Data**: Import the ASC Excel file into the `asc_data` table
+      ```sql
+      -- Using psql's \copy command (replace with your file path)
+      \copy asc_data FROM 'path/to/asc_data.csv' WITH (FORMAT csv, HEADER true);
+      ```
+
+   2. **ZIP Code Data**: Import the SimpleMaps data into the `uszips` table
+      ```sql
+      -- Using psql's \copy command (replace with your file path)
+      \copy uszips FROM 'path/to/uszips.csv' WITH (FORMAT csv, HEADER true);
+      ```
+
+   Note: The materialized views will automatically refresh after data import. If you need to manually refresh them:
+   ```sql
+   SELECT refresh_asc_materialized_views();
+   ```
+
 ## What's in the Migration?
 
 The SQL migration file (`asc_data_2025.sql`) includes:
@@ -76,10 +97,6 @@ The SQL migration file (`asc_data_2025.sql`) includes:
    - Improves query performance for common lookups
    - Enables efficient geographic searches
 
-## Example Queries
-
-Here are some sample queries to get you started:
-
 ```sql
 -- Get top 10 states by number of appraisers
 SELECT state_id, total_appraisers, total_population,
@@ -93,6 +110,53 @@ SELECT city_name, state_id, total_appraisers,
        appraisers_per_100k_pop
 FROM asc_data_cities
 ORDER BY appraisers_per_100k_pop DESC
+LIMIT 10;
+
+-- Find appraisers with most state licenses
+SELECT first_name || ' ' || last_name as name,
+       license_count,
+       years_licensed,
+       market_coverage,
+       identity_confidence
+FROM asc_data_appraisers
+ORDER BY license_count DESC
+LIMIT 10;
+
+-- Find largest appraisal companies and their geographic spread
+SELECT company_name,
+       appraiser_count,
+       state_count,
+       market_coverage,
+       company_size,
+       avg_years_licensed
+FROM asc_data_companies
+WHERE appraiser_count > 50
+ORDER BY appraiser_count DESC;
+
+-- Find cities with interesting certification distributions
+SELECT city_name, 
+       state_id,
+       total_appraisers,
+       ROUND(certified_general_pct, 1) as certified_general_pct,
+       ROUND(certified_residential_pct, 1) as certified_residential_pct,
+       ROUND(licensed_pct, 1) as licensed_pct
+FROM asc_data_cities
+WHERE total_appraisers > 100
+AND (certified_general_pct > 80 OR 
+     certified_residential_pct > 80 OR 
+     licensed_pct > 20)
+ORDER BY total_appraisers DESC;
+
+-- Find experienced appraisers with multiple licenses
+SELECT first_name || ' ' || last_name as name,
+       years_licensed,
+       license_count,
+       array_length(companies, 1) as company_count,
+       market_coverage
+FROM asc_data_appraisers
+WHERE years_licensed > 20
+AND license_count > 10
+ORDER BY years_licensed DESC, license_count DESC
 LIMIT 10;
 ```
 
