@@ -30,10 +30,10 @@ The ASC data presents several challenges that this repository helps address:
 1. **Install PostgreSQL**
    ```bash
    # macOS (using Homebrew)
-   brew install postgresql@15
+   brew install postgresql
    
    # Ubuntu/Debian
-   sudo apt-get install postgresql-15
+   sudo apt-get install postgresql
    
    # Windows
    # Download and run the installer from postgresql.org
